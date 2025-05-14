@@ -1,0 +1,29 @@
+// TinyURL System Architecture (AWS)
+digraph TinyURLArchitecture {
+    rankdir=LR;
+    node [shape=box, style=filled, color="#f0f5ff", fontname="Arial"];
+
+    Users [label="Users / Clients", shape=ellipse, color="#e6f7ff"];
+    API [label="API Gateway / FastAPI", color="#f9f0ff"];
+    Auth [label="Authentication Service", color="#fff0f6"];
+    Cache [label="ElastiCache (Memcached)\n+ mcrouter", color="#fff0f6"];
+    DB [label="DynamoDB / Aerospike", color="#fff0f6"];
+    S3 [label="S3 (optional)", color="#fff0f6"];
+    Monitor [label="CloudWatch / Monitoring", color="#f6ffed"];
+    Backup [label="Backup Service", color="#f6ffed"];
+    Cleanup [label="Cleanup Job (Lambda/EC2)", color="#fffbe6"];
+
+    Users -> API [label="HTTP(S) Requests"];
+    API -> Auth [label="Auth Check"];
+    API -> Cache [label="Read/Write Alias"];
+    Cache -> DB [label="DB Fallback (Miss)"];
+    API -> DB [label="Write Alias / Analytics"];
+    API -> S3 [label="Large Paste (optional)"];
+    API -> Monitor [label="Logs/Events"];
+    DB -> Monitor [label="DB Metrics"];
+    Cache -> Monitor [label="Cache Metrics"];
+    DB -> Backup [label="DB Backup"];
+    S3 -> Backup [label="Object Backup"];
+    Cleanup -> DB [label="Purge Expired"];
+    Cleanup -> Cache [label="Purge Expired"];
+} 
