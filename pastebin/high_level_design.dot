@@ -1,0 +1,39 @@
+digraph PastebinArchitecture {
+    rankdir=LR;
+    node [shape=box, style=filled, color="#f0f5ff", fontname="Arial"];
+
+    Users [label="Users / Clients", shape=ellipse, color="#e6f7ff"];
+    APIConsumers [label="External API Consumers", shape=ellipse, color="#e6f7ff"];
+    Admin [label="Admin Interface", shape=ellipse, color="#fffbe6"];
+    LB [label="Load Balancer"];
+    API1 [label="API/Web Server 1\n(FastAPI + Uvicorn)", color="#f9f0ff"];
+    API2 [label="API/Web Server 2\n(FastAPI + Uvicorn)", color="#f9f0ff"];
+    Auth [label="Authentication Service", color="#fff0f6"];
+    Redis [label="Redis Cache", color="#fff0f6"];
+    PG [label="PostgreSQL DB", color="#fff0f6"];
+    S3 [label="Object Storage (S3, optional)", color="#fff0f6"];
+    Log [label="Monitoring/Logging", color="#f6ffed"];
+    Backup [label="Backup Service", color="#f6ffed"];
+
+    Users -> LB [label="HTTP(S) Requests"];
+    APIConsumers -> LB [label="REST API"];
+    Admin -> LB [label="Admin API"];
+    LB -> API1 [label="Distributes"];
+    LB -> API2 [label="Distributes"];
+    API1 -> Auth [label="Auth Check"];
+    API2 -> Auth [label="Auth Check"];
+    API1 -> Redis [label="Cache Read/Write"];
+    API2 -> Redis [label="Cache Read/Write"];
+    API1 -> PG [label="DB Read/Write"];
+    API2 -> PG [label="DB Read/Write"];
+    API1 -> S3 [label="Large Paste"];
+    API2 -> S3 [label="Large Paste"];
+    API1 -> Log [label="Logs/Events"];
+    API2 -> Log [label="Logs/Events"];
+    PG -> Log [label="DB Metrics"];
+    Redis -> Log [label="Cache Metrics"];
+    PG -> Backup [label="DB Backup"];
+    S3 -> Backup [label="Object Backup"];
+    Admin -> PG [label="Moderation/Analytics"];
+    Admin -> Log [label="Moderation/Analytics"];
+} 
