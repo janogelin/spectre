@@ -1,0 +1,59 @@
+digraph APIRateLimiterAWS {
+    rankdir=LR;
+    node [shape=box, style=filled, fillcolor=lightgray];
+
+    subgraph cluster_gateway {
+        label = "AWS API Gateway";
+        apigw [label="API Gateway", shape=ellipse, fillcolor=lightblue];
+    }
+
+    subgraph cluster_lb {
+        label = "Elastic Load Balancer";
+        elb [label="Application Load Balancer", shape=ellipse, fillcolor=lightyellow];
+    }
+
+    subgraph cluster_app {
+        label = "App Servers (Auto Scaling Group)";
+        app1 [label="App Server 1\n(EC2/ECS/EKS)"];
+        app2 [label="App Server 2\n(EC2/ECS/EKS)"];
+        appn [label="App Server N\n(EC2/ECS/EKS)"];
+    }
+
+    subgraph cluster_cache {
+        label = "ElastiCache Cluster (Redis/Memcached)";
+        cache1 [label="Cache Node 1", fillcolor=lightgreen];
+        cache2 [label="Cache Node 2", fillcolor=lightgreen];
+        cacheN [label="Cache Node N", fillcolor=lightgreen];
+    }
+
+    subgraph cluster_monitor {
+        label = "Monitoring & Logging";
+        cw [label="CloudWatch", shape=ellipse, fillcolor=white];
+        logs [label="Centralized Logs", shape=ellipse, fillcolor=white];
+    }
+
+    // Connections
+    apigw -> elb;
+    elb -> app1;
+    elb -> app2;
+    elb -> appn;
+    app1 -> cache1;
+    app1 -> cache2;
+    app1 -> cacheN;
+    app2 -> cache1;
+    app2 -> cache2;
+    app2 -> cacheN;
+    appn -> cache1;
+    appn -> cache2;
+    appn -> cacheN;
+    app1 -> cw;
+    app2 -> cw;
+    appn -> cw;
+    app1 -> logs;
+    app2 -> logs;
+    appn -> logs;
+
+    // High Availability
+    cache1 -> cache2 [dir=both, style=dashed, label="Replication / Sharding"];
+    cache2 -> cacheN [dir=both, style=dashed];
+} 

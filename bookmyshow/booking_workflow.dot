@@ -1,0 +1,66 @@
+digraph BookingWorkflow {
+    rankdir=LR;
+    node [shape=box, style=filled, fillcolor=lightgray];
+
+    Client [label="Client (Web/Mobile)", shape=ellipse, fillcolor=lightblue];
+    LB [label="Load Balancer", fillcolor=orange];
+    API [label="API Server", fillcolor=yellow];
+    Cache [label="Cache (Redis)", fillcolor=lightgreen];
+    DB [label="Database (RDBMS)", fillcolor=lightpink];
+    Payment [label="Payment Gateway", fillcolor=lightcyan];
+    Notification [label="Notification Service", fillcolor=lightgoldenrod];
+    ActiveRes [label="Active Reservation Service", fillcolor=deepskyblue];
+    WaitingUser [label="Waiting User Service", fillcolor=plum];
+
+    // Steps
+    Client -> LB [label="1. Search Movies/Shows"];
+    LB -> API;
+    API -> Cache [label="Check cache for search results"];
+    Cache -> API [label="Cache hit/miss"];
+    API -> DB [label="Query DB if cache miss"];
+    DB -> API [label="Return search results"];
+    API -> Cache [label="Update cache"];
+    API -> LB;
+    LB -> Client [label="Show search results"];
+
+    Client -> LB [label="2. Select Show & Seats"];
+    LB -> API;
+    API -> ActiveRes [label="Check active reservations/holds"];
+    ActiveRes -> API [label="Available/held seats"];
+    API -> DB [label="Check seat availability"];
+    DB -> API;
+    API -> LB;
+    LB -> Client [label="Show seat map"];
+
+    Client -> LB [label="3. Hold Seats"];
+    LB -> API;
+    API -> ActiveRes [label="Create seat hold"];
+    ActiveRes -> DB [label="Persist hold"];
+    DB -> ActiveRes;
+    ActiveRes -> API;
+    API -> LB;
+    LB -> Client [label="Show hold confirmation"];
+
+    Client -> LB [label="4. If seats unavailable, join waitlist"];
+    LB -> API;
+    API -> WaitingUser [label="Add to waitlist"];
+    WaitingUser -> API [label="Notify when available"];
+    API -> LB;
+    LB -> Client [label="Notify user"];
+
+    Client -> LB [label="5. Confirm Booking & Pay"];
+    LB -> API;
+    API -> Payment [label="Process payment"];
+    Payment -> API [label="Payment status"];
+    API -> DB [label="Create booking if payment success"];
+    DB -> API;
+    API -> Notification [label="Send ticket/confirmation"];
+    Notification -> API;
+    API -> LB;
+    LB -> Client [label="Show booking confirmation"];
+
+    // Optional: Monitoring
+    Monitor [label="Monitoring & Logging", fillcolor=gray];
+    API -> Monitor;
+    LB -> Monitor;
+} 

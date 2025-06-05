@@ -1,0 +1,5 @@
+Swag: 
+- 500 cities
+- each city 10 cinemas
+- 2000 seats in each cinema
+- average 2 shows per day

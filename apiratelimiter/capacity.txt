@@ -1,0 +1,166 @@
+Capacity Planning: Redis vs Memcached for Rate Limiting (1 Million Users)
+============================================================
+
+1. Overview
+-----------
+This document compares Redis and Memcached as the distributed in-memory store for rate limiting, assuming a scale of 1 million unique users, each with a single rate limit key (e.g., per user per minute).
+
+2. Memory Usage Estimate
+------------------------
+- **Key format:** "rate_limit:{userid}" (assume 40 bytes for SHA-256 hash, 12 bytes for prefix, total ~52 bytes per key)
+- **Value:** Integer counter (8 bytes)
+- **Overhead:** Redis and Memcached have internal overhead per key (approx. 50-60 bytes for Redis, 48 bytes for Memcached)
+
+| Store      | Per-key Size (bytes) | Total for 1M users (MB) |
+|------------|---------------------|-------------------------|
+| Redis      | ~120                | ~120 MB                 |
+| Memcached  | ~108                | ~108 MB                 |
+
+*Note: These are rough estimates. Actual usage may be higher due to fragmentation and metadata.*
+
+3. Performance
+--------------
+- **Redis:**
+  - Single-threaded, but extremely fast (sub-millisecond latency)
+  - Supports atomic operations (INCR, EXPIRE)
+  - Can persist data to disk (AOF, RDB)
+  - Supports clustering and replication
+- **Memcached:**
+  - Multi-threaded, also very fast (sub-millisecond latency)
+  - No persistence (in-memory only)
+  - Simpler clustering (client-side sharding)
+
+4. Persistence & Durability
+---------------------------
+- **Redis:** Optional persistence (AOF, RDB), can recover from crashes
+- **Memcached:** No persistence; all data lost on restart
+
+5. Scaling
+----------
+- **Redis:** Supports clustering, replication, and partitioning
+- **Memcached:** Scales horizontally via client-side sharding
+
+6. AWS Instance Type Recommendation
+-----------------------------------
+- **Redis:**
+  - Use Amazon ElastiCache for Redis
+  - Best instance type: **cache.t3.medium** (2 vCPU, 3.13 GiB RAM) for up to several million keys; scale up to **cache.r6g.large** (Graviton2, 13.07 GiB RAM) for higher throughput or more data
+- **Memcached:**
+  - Use Amazon ElastiCache for Memcached
+  - Best instance type: **cache.t3.medium** (2 vCPU, 3.13 GiB RAM) for 1M users; scale up to **cache.r6g.large** for higher concurrency
+
+7. Recommendation
+-----------------
+- **Redis** is preferred for rate limiting due to atomic operations, optional persistence, and better clustering support.
+- **cache.t3.medium** is cost-effective for 1M users; monitor memory and scale up if needed.
+
+8. References
+-------------
+- https://redis.io/topics/memory-optimization
+- https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/SelectInstanceType.html
+- https://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/SelectInstanceType.html
+
+9. Sliding Window Requirements
+-----------------------------
+The Sliding Window algorithm provides smoother rate limiting by tracking the exact timing of each request within a rolling window (e.g., 60 seconds).
+
+**Algorithm Used:**
+- For each user, store a list (or queue) of timestamps for their recent requests.
+- On each request:
+  - Remove timestamps older than the window (e.g., 60 seconds).
+  - If the list contains fewer than the allowed number of requests (e.g., 3), allow the request and add the current timestamp.
+  - If the list already contains the maximum allowed requests, reject the request.
+- In Redis, this can be implemented using a JSON-encoded list or a Redis Sorted Set (ZSET) for more efficient range queries and removals.
+
+**Memory/Storage Requirements:**
+- Each user may store up to N timestamps (N = max requests per window, e.g., 3).
+- Each timestamp (as an integer) is 8 bytes.
+- For 1 million users and 3 timestamps per user:
+  - 3 timestamps × 8 bytes = 24 bytes per user (plus Redis key and metadata overhead)
+  - Total: 24 MB for timestamps + key/metadata overhead (estimate ~50-60 bytes per key)
+  - Approximate total: ~75-85 MB for 1 million users
+- If using Redis Sorted Sets, each entry has additional overhead (about 32 bytes per element in ZSET).
+
+**Operational Considerations:**
+- Sliding window requires more frequent updates (adding/removing timestamps) than fixed window.
+- Memory usage is slightly higher than fixed window, but still manageable for small N (e.g., 3 requests per minute).
+- For high request rates (large N), memory usage grows linearly with N.
+- Sorted Sets are more efficient for large N and high concurrency, but have higher per-element overhead.
+
+**Comparison with Fixed Window:**
+- Sliding window provides smoother, fairer rate limiting but uses more memory per user (especially for large N).
+- Fixed window is simpler and uses less memory, but allows burstiness at window boundaries.
+
+10. Sliding Window with Counters Capacity Planning
+-------------------------------------------------
+The Sliding Window with Counters algorithm stores two counters per user (current and previous window).
+
+**Data Stored per User:**
+- 2 counters (integers, 8 bytes each) = 16 bytes
+- Redis key (e.g., "rate_limit_sw_counter:{userid}:{window_start}", ~60 bytes per key)
+- Each user will have two keys active at any time (current and previous window)
+
+**Memory Estimate for 1 Million Users:**
+- 2 keys × (60 bytes key + 8 bytes value + ~50 bytes Redis overhead) ≈ 236 bytes per user
+- Total for 1 million users: 236 MB
+
+**Comparison:**
+- Slightly higher than fixed window (which uses 1 counter per user), but much lower than storing N timestamps per user (sliding window with timestamps)
+- Memory usage is predictable and does not grow with request rate (unlike timestamp-based sliding window)
+
+**Operational Notes:**
+- Expiry for each counter is set to twice the window size to ensure both windows are available for calculation
+- Very efficient for large-scale systems and high concurrency
+- Suitable for use with Redis or Memcached (if atomic increment and expiry are supported)
+
+**Summary:**
+- Sliding Window with Counters is a scalable, memory-efficient choice for rate limiting at scale, providing a good balance between accuracy and resource usage.
+
+11. Data Sharding and Caching Analysis
+-------------------------------------
+As user scale increases, sharding and cache partitioning become critical for performance and reliability. Below is an analysis for 1 million, 10 million, and 100 million users.
+
+**Sharding Approaches:**
+- **Hash-based sharding:** Distribute keys across nodes using a hash function (e.g., Redis Cluster, consistent hashing in Memcached). Ensures even distribution and easy scaling.
+- **Range-based sharding:** Partition keys by user ID ranges. Less common for rate limiting, but can be used for predictable access patterns.
+
+**Cache Partitioning:**
+- Both Redis and Memcached support clustering, allowing horizontal scaling by adding more nodes.
+- Each node is responsible for a subset of the keyspace.
+
+**Operational Considerations:**
+- Monitor node memory and CPU usage; rebalance shards as needed.
+- Plan for failover and replication to avoid data loss.
+- For very large scale, automate node addition/removal and rebalancing.
+
+**Memory Requirements (Sliding Window with Counters, 2 keys per user, ~236 bytes/user):**
+| Users         | Total Memory Needed |
+|--------------|--------------------|
+| 1 million    | ~236 MB            |
+| 10 million   | ~2.36 GB           |
+| 100 million  | ~23.6 GB           |
+
+**Sharding Recommendations:**
+- **1 million users:**
+  - Single Redis/Memcached node (cache.r6g.large or similar) is sufficient.
+  - Sharding not strictly necessary, but cluster mode can provide HA.
+- **10 million users:**
+  - Use Redis Cluster or Memcached with at least 3-6 nodes.
+  - Hash-based sharding for even distribution.
+  - Monitor and scale nodes as needed.
+- **100 million users:**
+  - Requires a large Redis/Memcached cluster (e.g., 20+ nodes, depending on instance size).
+  - Use hash-based sharding and automated rebalancing.
+  - Consider multi-region clusters for global scale and redundancy.
+
+**Summary Table:**
+| Users         | Memory Needed | Recommended Nodes | Sharding Approach      |
+|--------------|--------------|-------------------|-----------------------|
+| 1 million    | ~236 MB      | 1                 | Optional (HA only)    |
+| 10 million   | ~2.36 GB     | 3-6               | Hash-based            |
+| 100 million  | ~23.6 GB     | 20+               | Hash-based, automated |
+
+**Notes:**
+- Always monitor and plan for growth; memory estimates are for rate limiting data only.
+- For high availability, use replication and failover regardless of scale.
+- For very high scale, consider managed services (Amazon ElastiCache, Google Memorystore) for easier scaling and management. 

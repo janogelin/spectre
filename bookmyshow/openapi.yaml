@@ -1,0 +1,466 @@
+openapi: 3.0.3
+info:
+  title: BookMyShow Cinema Ticket Booking API
+  version: 1.0.0
+  description: |
+    REST API for searching movies, booking tickets, and managing cinema information.
+    Includes developer API key for throttling and authentication.
+servers:
+  - url: /api/v1
+paths:
+  /movies/search:
+    get:
+      summary: Search for movies and shows
+      description: >
+        Search for movies by keyword, city, location, time, and other filters. Requires an api_dev_key for authentication and throttling.
+      parameters:
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+          description: Developer API key for authentication/throttling
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          required: false
+          description: Keyword to search for (movie title, etc.)
+        - in: query
+          name: city
+          schema:
+            type: string
+          required: false
+          description: Filter movies by city
+        - in: query
+          name: latitude
+          schema:
+            type: number
+            format: float
+          required: false
+          description: Latitude for geo-filtering
+        - in: query
+          name: longitude
+          schema:
+            type: number
+            format: float
+          required: false
+          description: Longitude for geo-filtering
+        - in: query
+          name: radius
+          schema:
+            type: number
+            format: float
+          required: false
+          description: Radius (km) for area search
+        - in: query
+          name: start_time
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: ISO8601 start time for movie show
+        - in: query
+          name: end_time
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: ISO8601 end time for movie show
+        - in: query
+          name: postal_code
+          schema:
+            type: string
+          required: false
+          description: Postal code to filter by
+        - in: query
+          name: spellcheck
+          schema:
+            type: boolean
+          required: false
+          description: Enable spellcheck (true/false)
+        - in: query
+          name: results_per_page
+          schema:
+            type: integer
+            default: 20
+          required: false
+          description: Number of results per page (pagination)
+        - in: query
+          name: sorting_order
+          schema:
+            type: string
+            enum: [asc, desc, rating]
+            default: rating
+          required: false
+          description: Sorting order (asc, desc, rating)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          required: false
+          description: Page number for pagination
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        movie_id:
+                          type: integer
+                        title:
+                          type: string
+                        cinema:
+                          type: string
+                        city:
+                          type: string
+                        show_time:
+                          type: string
+                          format: date-time
+                        available_seats:
+                          type: integer
+                        rating:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      results_per_page:
+                        type: integer
+                      total_results:
+                        type: integer
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /cities:
+    get:
+      summary: List all cities with affiliate cinemas
+      parameters:
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+          description: Developer API key
+      responses:
+        '200':
+          description: List of cities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cities:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /cinemas:
+    get:
+      summary: List all cinemas in a city
+      parameters:
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: city
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: List of cinemas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cinemas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cinema_id:
+                          type: integer
+                        name:
+                          type: string
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /cinemas/{cinema_id}/shows:
+    get:
+      summary: List all shows in a cinema
+      parameters:
+        - in: path
+          name: cinema_id
+          schema:
+            type: integer
+          required: true
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: List of shows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        show_id:
+                          type: integer
+                        movie_title:
+                          type: string
+                        start_time:
+                          type: string
+                          format: date-time
+                        end_time:
+                          type: string
+                          format: date-time
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /shows/{show_id}/seats:
+    get:
+      summary: List available and booked seats for a show
+      parameters:
+        - in: path
+          name: show_id
+          schema:
+            type: integer
+          required: true
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: List of seats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        seat_id:
+                          type: integer
+                        seat_number:
+                          type: string
+                        status:
+                          type: string
+                          enum: [available, booked, held]
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /bookings/hold:
+    post:
+      summary: Hold seats for a show
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_dev_key:
+                  type: string
+                show_id:
+                  type: integer
+                seat_ids:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Hold created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hold_id:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+        '400':
+          description: Invalid request
+  /bookings/confirm:
+    post:
+      summary: Confirm a booking for held seats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_dev_key:
+                  type: string
+                hold_id:
+                  type: string
+                user_name:
+                  type: string
+                user_email:
+                  type: string
+      responses:
+        '200':
+          description: Booking confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking_id:
+                    type: string
+                  status:
+                    type: string
+                  seats:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+        '400':
+          description: Invalid request
+  /bookings/{booking_id}:
+    get:
+      summary: Get booking details
+      parameters:
+        - in: path
+          name: booking_id
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: api_dev_key
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking_id:
+                    type: string
+                  user_name:
+                    type: string
+                  user_email:
+                    type: string
+                  seats:
+                    type: array
+                    items:
+                      type: string
+                  status:
+                    type: string
+                  show_id:
+                    type: integer
+                  cinema:
+                    type: string
+                  movie_title:
+                    type: string
+                  show_time:
+                    type: string
+                    format: date-time
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+  /reservations:
+    post:
+      summary: Reserve seats for a show
+      description: Reserve one or more seats for a specific show. Handles cases where seats are held by other users.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_dev_key:
+                  type: string
+                  description: Developer API key for authentication/throttling
+                session_id:
+                  type: string
+                  description: Unique session identifier for the user
+                movie_id:
+                  type: integer
+                  description: Movie ID
+                show_id:
+                  type: integer
+                  description: Show ID
+                seats_to_reserve:
+                  type: array
+                  items:
+                    type: string
+                  description: List of seat numbers to reserve
+              required:
+                - api_dev_key
+                - session_id
+                - movie_id
+                - show_id
+                - seats_to_reserve
+      responses:
+        '200':
+          description: Reservation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success, failed, retry]
+                    description: Reservation status
+                  message:
+                    type: string
+                    description: Human-readable message
+                  reservation_id:
+                    type: string
+                    description: Reservation ID (if successful)
+        '401':
+          description: Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+        '400':
+          description: Invalid request 

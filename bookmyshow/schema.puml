@@ -1,0 +1,71 @@
+@startuml
+
+class cities {
+    id: SERIAL (PK)
+    name: VARCHAR(100)
+}
+
+class cinemas {
+    id: SERIAL (PK)
+    name: VARCHAR(100)
+    city_id: INT (FK)
+    location: VARCHAR(255)
+}
+
+class halls {
+    id: SERIAL (PK)
+    cinema_id: INT (FK)
+    name: VARCHAR(100)
+}
+
+class movies {
+    id: SERIAL (PK)
+    title: VARCHAR(200)
+    description: TEXT
+    duration_minutes: INT
+    rating: VARCHAR(10)
+    release_date: DATE
+}
+
+class shows {
+    id: SERIAL (PK)
+    movie_id: INT (FK)
+    hall_id: INT (FK)
+    show_time: TIMESTAMP
+}
+
+class seats {
+    id: SERIAL (PK)
+    hall_id: INT (FK)
+    seat_number: VARCHAR(10)
+}
+
+class users {
+    id: SERIAL (PK)
+    name: VARCHAR(100)
+    email: VARCHAR(100)
+    password_hash: VARCHAR(255)
+    created_at: TIMESTAMP
+}
+
+class bookings {
+    id: SERIAL (PK)
+    user_id: INT (FK)
+    show_id: INT (FK)
+    seat_id: INT (FK)
+    booking_time: TIMESTAMP
+    status: VARCHAR(20)
+}
+
+cities "1" -- "*" cinemas : has
+cinemas "1" -- "*" halls : has
+halls "1" -- "*" shows : hosts
+halls "1" -- "*" seats : contains
+movies "1" -- "*" shows : features
+shows "1" -- "*" bookings : has
+shows "1" -- "*" seats : uses
+bookings "*" -- "1" users : by
+bookings "*" -- "1" seats : for
+bookings "*" -- "1" shows : for
+
+@enduml 

@@ -1,0 +1,52 @@
+@startuml
+!define RECTANGLE class
+skinparam rectangle {
+  BackgroundColor #FDF6E3
+  BorderColor #657B83
+}
+
+actor User
+actor "API Client" as Client
+
+rectangle "TinyURL API" {
+  rectangle "POST /api/v1/urls" as CreateShortURL
+  rectangle "DELETE /api/v1/urls/{alias}" as DeleteShortURL
+  rectangle "GET /{alias}" as RedirectShortURL
+}
+
+rectangle "Rate Limiter" as RateLimiter
+rectangle "ShortURL Store" as URLStore
+rectangle "API Key Store" as APIKeyStore
+
+Client -- CreateShortURL : "api_dev_key, original_url, ..."
+Client -- DeleteShortURL : "api_dev_key, alias"
+User -- RedirectShortURL : "alias"
+
+CreateShortURL --> RateLimiter : "Check rate limit"
+DeleteShortURL --> RateLimiter : "Check rate limit"
+RedirectShortURL --> RateLimiter : "Check rate limit (if authenticated)"
+
+CreateShortURL --> URLStore : "Create short URL"
+DeleteShortURL --> URLStore : "Delete short URL"
+RedirectShortURL --> URLStore : "Lookup alias"
+
+CreateShortURL --> APIKeyStore : "Validate api_dev_key"
+DeleteShortURL --> APIKeyStore : "Validate api_dev_key"
+
+RateLimiter --> APIKeyStore : "Get rate limit config"
+
+CreateShortURL --> Client : "short_url, alias, expiration, message"
+DeleteShortURL --> Client : "success, message"
+RedirectShortURL --> User : "HTTP 302 or error JSON"
+
+note right of RateLimiter
+  - Per-key and per-action limits
+  - HTTP 429 on limit exceeded
+end note
+
+note bottom of URLStore
+  - Enforces alias uniqueness
+  - Stores expiration, creator, etc.
+end note
+
+@enduml 

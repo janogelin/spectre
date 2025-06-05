@@ -1,0 +1,32 @@
+functional requirements:
+- ticketing booking service shold be able to list different cities where its affiliate cinamas are located
+- user should be able to select a city and see all the cinemas present in the city
+- user should be able to select a cinema and see all the shows playing in the cinema
+- user should be able to select a show and see the available seats
+- user should be able to distinguish between available and booked seats
+- user should be able to select a seat and book the ticket
+- user should be able to puta hold on the seats for 5 minutes before finalizing the booking
+- user should be able to wait if other users holds are about to expire
+- waiting customers should be serviced in a fair, first come first serve basis
+
+non-functional requirements:
+- system should be highly available and reliable
+- system should be highly concurrent
+- system should be secure and the database acid compliant
+- system should be secure and able to prevent attacks
+- system should be able to handle failures of any single component
+
+design choices:
+- for simplicity, does not require authentication and authorization
+- no handling of partial booking or partial payment
+- fairness is mandatory, no customer should be deprived of a seat due to unavailability of another customer
+- to stop system abuse, we can restrict a customer to book a maximum of 10 seats at a time
+- we can assume that triffic would spike on popular shows, so we need to handle spikes in demand
+
+traffic estimation:
+- 3 billion page views per month
+- 10 million tickets sold per month
+
+
+
+

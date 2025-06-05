@@ -1,0 +1,30 @@
+non-functional requirements:
+- fault-rate < threshold
+- count failures
+- number of requests to fail before circuit is tripped = 5
+- how much time the circuit will stay open (tripped) = 60 seconds
+- number of requests to trip the circuit = 10
+- number of requests to reset the circuit = 10
+
+considerations:
+- evaluate well-established open-source libraries as resillience4j and polly, hystrix, etc.
+- use healthchecks to monitor the circuitbreaker
+- has to be thread-safe
+- here is what to do if circuitbreaker is tripped:
+  - log the event
+  - stop sending requests to the service
+  - notify the operations team
+  - after the cooldown period, half the cooldown period and try again
+  - here is what we do if circuitbreaker rejects a request:
+    - log the event
+    - buffer the request
+    - fail over to a backup service
+    - fallback to a cached response
+    - apply backpressure up the call stack
+    - cancel the request
+    - retry the request after the cooldown period
+    - if the request still fails, try again after half the cooldown period
+    - if the request still fails, notify the operations team
+    - if the request still fails, return a fallback response
+
+

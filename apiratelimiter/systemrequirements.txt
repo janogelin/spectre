@@ -1,0 +1,32 @@
+functional requirements:
+- entity can send only 15 request per second
+- The apis are accessible through a cluster, so the rate limit should be applied per cluster
+- The rate limit should be applied per api key
+- The rate limit should be applied per ip address
+- The rate limit should be applied per api
+- The rate limit should be applied per api key
+- The rate limit should be applied per ip address
+- The rate limit should be applied per api
+- The user should get an error if the rate limit is exceeded
+
+non-functional requirements:
+- the system should be scalable
+- the system should be highly available
+- the system should be fast
+- the system should be secure
+- the system should be easy to maintain
+- the system should be easy to deploy
+- the system should be easy to monitor
+- the system should be easy to test
+
+different types of throttling:
+- Hard throttling: the user will get an error if the rate limit is exceeded
+- Soft throttling: the user will get a message that the rate limit is exceeded
+- Elastic or dynamic throttling: the user will get a message that the rate limit is exceeded
+
+different types of algorithms:
+- Leaky bucket
+- Token bucket
+- Fixed window
+- Sliding window
+- Sliding window log

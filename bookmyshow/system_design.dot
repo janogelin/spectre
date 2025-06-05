@@ -1,0 +1,23 @@
+digraph BookMyShowSystemDesign {
+    rankdir=LR;
+    node [shape=box, style=filled, fillcolor=lightgray];
+
+    Clients [label="Clients (Web/Mobile)", shape=ellipse, fillcolor=lightblue];
+    LB [label="Load Balancer", fillcolor=orange];
+    API [label="API Servers (FastAPI)", fillcolor=yellow];
+    Cache [label="Cache (Redis)", fillcolor=lightgreen];
+    DB [label="Database (RDBMS)", fillcolor=lightpink];
+    Storage [label="Object Storage (Media)", fillcolor=lightcyan];
+
+    Clients -> LB;
+    LB -> API;
+    API -> Cache [label="Read/Write (hot data)"];
+    API -> DB [label="Read/Write (persistent data)"];
+    API -> Storage [label="Upload/Fetch media"];
+    Cache -> DB [label="Cache miss (read-through)"];
+
+    // Optional: Monitoring
+    Monitor [label="Monitoring & Logging", fillcolor=gray];
+    API -> Monitor;
+    LB -> Monitor;
+} 

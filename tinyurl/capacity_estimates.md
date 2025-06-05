@@ -18,6 +18,24 @@
 - **Retention period:** 5 years
 - **Total writes in 5 years:** 500 million × 12 × 5 = 30 billion
 - **Storage per object:** 500 bytes
+
+  **Explanation:**
+  The 500 bytes per object estimate is a conservative figure that accounts for all the data and metadata stored for each shortened URL. This includes:
+  - **Short URL code (base-62 encoded):** ~8 bytes (Base-62 encoding allows for a large number of unique codes with a short length. For example, 8 base-62 characters can represent 62^8 ≈ 218 trillion unique codes, which is sufficient for the scale of this service. Each character is stored as a single byte, so an 8-character code uses 8 bytes.)
+  - **Original (long) URL:** Up to 256 bytes (to accommodate most URLs)
+  - **Creation timestamp:** 8 bytes
+  - **Expiration timestamp:** 8 bytes
+  - **User/account ID:** 8–16 bytes
+  - **Access counters/analytics:** 4–16 bytes
+  - **Status flags/booleans:** 1–2 bytes
+  - **Other metadata (tags, custom alias, etc.):** 50–100 bytes
+  - **Database overhead (indexing, alignment, etc.):** 50–100 bytes
+
+  Adding these together, the total is typically around 450–470 bytes. Rounding up to 500 bytes provides a buffer for future extensibility and ensures the estimate is not too low. This approach is standard in capacity planning to avoid under-provisioning and to account for any additional fields or database storage overhead that may arise as the system evolves.
+
+  **Note on Base-62 Encoding:**
+  The short URL code is generated using base-62 encoding (using [A-Za-z0-9]), which is highly space-efficient. For example, with 8 characters, base-62 encoding can uniquely represent over 200 trillion URLs, which is more than enough for the estimated 30 billion records over 5 years. This encoding ensures that the short code remains compact and storage-efficient.
+
 - **Total storage:** 30,000,000,000 × 500 bytes = 15,000,000,000,000 bytes = 15 TB
 
 #### Math Explanation

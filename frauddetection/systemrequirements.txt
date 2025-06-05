@@ -1,0 +1,43 @@
+functional requirements:
+- system should take no more than 5 seconds to evaluate a transaction
+- if a transaction is flagged as potentially fraudulent, the system should reject the transaction
+- if a transaction is flagged as potentially fraudulent, the system should log the event
+- if a transaction is flagged as potentially fraudulent, the system should notify the operations team
+- if a transaction is flagged as potentially fraudulent and rejected, it should not take more than a few hours to unblock the transaction
+- no more than 1% of transactions should be rejected as fraudulent
+- system should allow easily manage users, groups, roles and policies
+- system should provide an sdk for various languages to allow for easy integration
+
+non-functional requirements:
+- high scalability (to support both long term and short term increases in transaction volume)
+- high availability (to ensure that the system is always available)
+- high durability (to ensure that fraud detection data is not lost)
+- high extensibility (we would be able to integrate the system with additional data sources) e.g. users past payment history that allow to more accurately evaluate transactions
+- admin tool should lock transactions that are under review
+- 
+
+
+key-actors:
+- user
+- fraud analyst
+- operations team
+- data engineer
+- data scientist
+
+key-components:
+- api gateway
+- fraud analyst admin tool
+- data aggregation service
+- scoring service
+- message queue
+- database
+- machine learning model (training pipeline)
+- user profile service
+- payment history service
+- geo-location service
+- device fingerprinting service
+- ip reputation service
+- user-agent service
+- email verification service
+- phone number verification service
+

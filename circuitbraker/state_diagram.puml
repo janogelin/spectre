@@ -1,0 +1,23 @@
+@startuml
+
+left to right direction
+
+[*] --> Closed
+
+Closed --> Open : 5 consecutive failures
+Closed --> Open : 10 failed requests
+Open --> HalfOpen : After 60 seconds
+HalfOpen --> Closed : 10 test requests succeed
+HalfOpen --> Open : Any test request fails
+
+state Closed {
+  note bottom: All requests allowed
+}
+state Open {
+  note bottom: All requests rejected for 60s
+}
+state HalfOpen as "Half-Open" {
+  note bottom: Allow 10 test requests
+}
+
+@enduml 
